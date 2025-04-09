@@ -88,26 +88,51 @@ def format_code_with_clang(lines):
     # 创建命令行参数列表
     args = sys.argv[1:]
     
+    # 定义减少换行的样式参数
+    style_options = {
+        "UseTab": "Always", 
+        "IndentWidth": 8,
+        "ColumnLimit": 120,  # 增加列宽限制
+        "BinPackParameters": "true",  # 尽可能将参数打包到一行
+        "BinPackArguments": "true",   # 尽可能将参数打包到一行
+        "AllowAllParametersOfDeclarationOnNextLine": "true",
+        "AlignAfterOpenBracket": "Align",  # 对齐开括号后的参数
+        "ContinuationIndentWidth": 4,      # 控制续行的缩进宽度
+        "BreakBeforeBinaryOperators": "None",  # 不在二元运算符前换行
+        "PenaltyBreakAssignment": 100,     # 增加赋值语句换行的惩罚值
+        "PenaltyBreakBeforeFirstCallParameter": 100  # 增加调用参数换行的惩罚值
+    }
+    
     # 检查是否已有样式参数
     has_style = any(arg.startswith("-style=") for arg in args)
     
     if not has_style:
-        # 添加使用tab缩进的样式参数
-        args.append("-style={UseTab: Always, IndentWidth: 8}")
+        # 构建样式参数字符串
+        style_str = ", ".join([f"{k}: {v}" for k, v in style_options.items()])
+        args.append(f"-style={{{style_str}}}")
     else:
         # 如果已有样式参数，尝试修改它
         for i, arg in enumerate(args):
             if arg.startswith("-style="):
-                # 提取现有样式并添加tab设置
+                # 提取现有样式
                 style = arg.replace("-style=", "")
+                
                 # 处理文件风格和内联风格两种情况
                 if style.startswith("{") and style.endswith("}"):
-                    # 内联风格，添加tab设置
-                    style = style[:-1] + ", UseTab: Always, IndentWidth: 8}"
+                    # 内联风格，添加我们的样式参数
+                    style_content = style[1:-1]
+                    # 合并已有样式和新样式
+                    merged_style = style_content
+                    for k, v in style_options.items():
+                        if k not in style_content:
+                            if merged_style:
+                                merged_style += ", "
+                            merged_style += f"{k}: {v}"
+                    args[i] = f"-style={{{merged_style}}}"
                 elif not style.startswith("file"):
                     # 非文件风格，转换为内联风格
-                    style = f"{{{style}, UseTab: Always, IndentWidth: 8}}"
-                args[i] = f"-style={style}"
+                    style_str = ", ".join([f"{k}: {v}" for k, v in style_options.items()])
+                    args[i] = f"-style={{{style}, {style_str}}}"
     
     command = ["clang-format"] + args
     process = Popen(command, stdout=PIPE, stderr=None, stdin=PIPE)
