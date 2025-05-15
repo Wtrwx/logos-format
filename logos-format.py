@@ -19,7 +19,6 @@ NORMAL_TOKENS = [
     "%log",       # 函数级别标记
 ]
 
-
 def preprocess_logos_syntax(lines):
     """将 Logos 语法替换为临时标记，以便 clang-format 格式化"""
     processed_lines = []
@@ -51,11 +50,13 @@ def preprocess_logos_syntax(lines):
                     token_name = token[1:]  # 去掉 %
                     line = re.sub(rf"%({token_name})\b", r"@logosformat\1", line)
             
-            # 处理特殊标记（添加分号）
+            # 处理特殊标记（添加分号，但如果行内有花括号则不添加）
             for token in SPECIAL_TOKENS:
                 if token in line:
                     token_name = token[1:]  # 去掉 %
-                    line = re.sub(rf"%({token_name})\b", r"@logosformat\1", line) + ";"
+                    line = re.sub(rf"%({token_name})\b", r"@logosformat\1", line)
+                    if '{' not in line:  # 只在没有花括号的情况下添加分号
+                        line += ";"
         else:
             # 行中有注释，分别处理注释前和注释部分
             code_part = line[:comment_pos]
@@ -73,71 +74,10 @@ def preprocess_logos_syntax(lines):
             for token in SPECIAL_TOKENS:
                 if token in code_part:
                     token_name = token[1:]  # 去掉 %
-                    code_part = re.sub(rf"%({token_name})\b", r"@logosformat\1", code_part) + ";"
-                    modified_code = True
-            
-            # 重新组合代码和注释部分
-            if modified_code:
-                # 如果添加了分号，添加新行并保留注释
-                processed_lines.append(code_part)
-                if comment_part.strip():  # 如果注释部分不为空
-                    processed_lines.append(comment_part)
-            else:
-                line = code_part + comment_part
-                processed_lines.append(line)
-            continue
-        
-        processed_lines.append(line)
-    
-    return processed_lines
-
-
-
-def preprocess_logos_syntax(lines):
-    """将 Logos 语法替换为临时标记，以便 clang-format 格式化"""
-    processed_lines = []
-    
-    for line in lines:
-        # 检查是否是注释行或包含注释
-        comment_pos = line.find('//')
-        
-        # 如果是纯注释行（行首就是注释）或空行，直接添加不处理
-        if comment_pos == 0 or line.strip() == '':
-            processed_lines.append(line)
-            continue
-        
-        # 如果行中没有注释，正常处理
-        if comment_pos == -1:
-            # 处理正常标记（不添加分号）
-            for token in NORMAL_TOKENS:
-                if token in line:
-                    token_name = token[1:]  # 去掉 %
-                    line = re.sub(rf"%({token_name})\b", r"@logosformat\1", line)
-            
-            # 处理特殊标记（添加分号）
-            for token in SPECIAL_TOKENS:
-                if token in line:
-                    token_name = token[1:]  # 去掉 %
-                    line = re.sub(rf"%({token_name})\b", r"@logosformat\1", line) + ";"
-        else:
-            # 行中有注释，分别处理注释前和注释部分
-            code_part = line[:comment_pos]
-            comment_part = line[comment_pos:]
-            
-            # 处理代码部分
-            modified_code = False
-            
-            # 只处理注释前的代码部分
-            for token in NORMAL_TOKENS:
-                if token in code_part:
-                    token_name = token[1:]  # 去掉 %
                     code_part = re.sub(rf"%({token_name})\b", r"@logosformat\1", code_part)
-            
-            for token in SPECIAL_TOKENS:
-                if token in code_part:
-                    token_name = token[1:]  # 去掉 %
-                    code_part = re.sub(rf"%({token_name})\b", r"@logosformat\1", code_part) + ";"
-                    modified_code = True
+                    if '{' not in code_part:  # 只在没有花括号的情况下添加分号
+                        code_part += ";"
+                        modified_code = True
             
             # 重新组合代码和注释部分
             if modified_code:
