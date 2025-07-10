@@ -101,8 +101,8 @@ def format_code_with_clang(lines):
     
     # 定义减少换行的样式参数
     style_options = {
-        "UseTab": "Always", 
-        "IndentWidth": 8,
+        "UseTab": "Never", 
+        "IndentWidth": 2,
         "ColumnLimit": 200,  # 增加列宽限制，防止长行被拆分
         "BinPackParameters": "true",  # 尽可能将参数打包到一行
         "BinPackArguments": "true",   # 尽可能将参数打包到一行
